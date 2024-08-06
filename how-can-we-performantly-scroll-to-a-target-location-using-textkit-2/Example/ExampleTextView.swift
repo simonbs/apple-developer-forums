@@ -99,22 +99,6 @@ final class ExampleTextView: NSView {
         scrollToVisible(lineFragmentFrame)
         print("👉 RESULT: Last line fragment of the document is at \(lineFragmentFrame)")
     }
-
-    override func moveToEndOfDocument(_ sender: Any?) {
-        textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
-        let targetLocation = textLayoutManager.documentRange.endLocation
-        let beforeTargetLocation = textLayoutManager.location(targetLocation, offsetBy: -1)!
-        textLayoutManager.textViewportLayoutController.layoutViewport()
-        guard let textLayoutFragment = textLayoutManager.textLayoutFragment(for: beforeTargetLocation) else {
-            return
-        }
-        guard let textLineFragment = textLayoutFragment.textLineFragment(for: targetLocation, isUpstreamAffinity: true) else {
-            return
-        }
-        let lineFrame = textLayoutFragment.layoutFragmentFrame
-        let lineFragmentFrame = textLineFragment.typographicBounds.offsetBy(dx: 0, dy: lineFrame.minY)
-        scrollToVisible(lineFragmentFrame)
-    }
 }
 
 extension ExampleTextView: NSTextLayoutManagerDelegate {

@@ -12,22 +12,22 @@ NSTextView and TextEdit on macOS can navigate to the end of large documents in m
 
 Here's the code I use to move the selection to the end of the document and scroll the viewport to reveal the selection.
 
-```
+```swift
 override func moveToEndOfDocument(_ sender: Any?) {
-        textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
-        let targetLocation = textLayoutManager.documentRange.endLocation
-        let beforeTargetLocation = textLayoutManager.location(targetLocation, offsetBy: -1)!
-        textLayoutManager.textViewportLayoutController.layoutViewport()
-        guard let textLayoutFragment = textLayoutManager.textLayoutFragment(for: beforeTargetLocation) else {
-            return
-        }
-        guard let textLineFragment = textLayoutFragment.textLineFragment(for: targetLocation, isUpstreamAffinity: true) else {
-            return
-        }
-        let lineFrame = textLayoutFragment.layoutFragmentFrame
-        let lineFragmentFrame = textLineFragment.typographicBounds.offsetBy(dx: 0, dy: lineFrame.minY)
-        scrollToVisible(lineFragmentFrame)
+    textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
+    let targetLocation = textLayoutManager.documentRange.endLocation
+    let beforeTargetLocation = textLayoutManager.location(targetLocation, offsetBy: -1)!
+    textLayoutManager.textViewportLayoutController.layoutViewport()
+    guard let textLayoutFragment = textLayoutManager.textLayoutFragment(for: beforeTargetLocation) else {
+        return
     }
+    guard let textLineFragment = textLayoutFragment.textLineFragment(for: targetLocation, isUpstreamAffinity: true) else {
+        return
+    }
+    let lineFrame = textLayoutFragment.layoutFragmentFrame
+    let lineFragmentFrame = textLineFragment.typographicBounds.offsetBy(dx: 0, dy: lineFrame.minY)
+    scrollToVisible(lineFragmentFrame)
+}
 ```
 
 While this code works as intended, it is very inefficient because `ensureLayout(_:)` is incredibly expensive and can take seconds for large documents.
@@ -53,7 +53,7 @@ How can third-party developers scroll to a target location, specifically the end
 
 **Steps to Reproduce:**
 
-The issue can be reproduced using the example project (download from link below) by following these steps:
+The issue can be reproduced using [the example project](https://github.com/simonbs/apple-developer-forums/tree/main/how-can-we-performantly-scroll-to-a-target-location-using-textkit-2) (download from link below) by following these steps:
 
 1. Open the example project.
 2. Run the example app on a Mac. The example app shows an uneditable text view in a scroll view. The text view displays a long text.
@@ -63,6 +63,12 @@ The issue can be reproduced using the example project (download from link below)
 You can open the ExampleTextView.swift file and find the implementation of `moveToEndOfDocument(_:).` Comment out line 84 where the `ensureLayout(_:)` is called, rerun the app, and then select "Move to End of Document" again. This time, you will notice that the text view moves fast but does not end up at the bottom of the document.
 
 You may also open the large-file.json in the project, the same file that the example app displays, in TextEdit, and press CMD+Down to move to the end of the document. Notice that TextEdit does this in mere milliseconds.
+
+**Example Project:**
+
+The example project is located on GitHub:
+
+[https://github.com/simonbs/apple-developer-forums/tree/main/how-can-we-performantly-scroll-to-a-target-location-using-textkit-2](https://github.com/simonbs/apple-developer-forums/tree/main/how-can-we-performantly-scroll-to-a-target-location-using-textkit-2)
 
 Any advice or guidance on how to achieve this with TextKit 2 would be greatly appreciated.
 

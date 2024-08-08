@@ -2,7 +2,7 @@ import AppKit
 
 // Displays a text using TextKit 2. Does not implement editing interactions
 // as they are not needed for the purpose of this example.
-final class ExampleTextView: NSView {
+final class ExampleTextView: NSView, CALayerDelegate{
     override var isFlipped: Bool {
         true
     }
@@ -10,6 +10,16 @@ final class ExampleTextView: NSView {
     private let textContainer = NSTextContainer()
     private let textLayoutManager = NSTextLayoutManager()
     private let textContentStorage = TextContentStorage()
+    
+    enum ScrollPosition {
+        case start
+        case end
+    }
+    
+    var scrollposition: ScrollPosition = .end
+    var maxBounds: CGFloat = 0
+    var counter = 0
+    var previousSelections = [NSTextSelection]()
 
     override required init(frame: CGRect) {
         super.init(frame: frame)
@@ -20,6 +30,7 @@ final class ExampleTextView: NSView {
         textLayoutManager.textContainer = textContainer
         textLayoutManager.textViewportLayoutController.delegate = self
         textContentStorage.addTextLayoutManager(textLayoutManager)
+        updateContentSizeIfNeeded()
     }
     
     required init?(coder: NSCoder) {
@@ -50,6 +61,23 @@ final class ExampleTextView: NSView {
         let sizingView = enclosingScrollView?.contentView ?? self
         textContainer.size = CGSize(width: sizingView.frame.width, height: 0)
         textLayoutManager.textViewportLayoutController.layoutViewport()
+        updateContentSizeIfNeeded()
+    }
+    
+    func layoutSublayers(of layer: CALayer) {
+        assert(layer == self.layer)
+        textLayoutManager.textViewportLayoutController.layoutViewport()
+        updateContentSizeIfNeeded()
+    }
+    
+    // Responsive scrolling.
+   // override class var isCompatibleWithResponsiveScrolling: Bool { return true }
+    
+    
+    override func viewDidEndLiveResize() {
+        super.viewDidEndLiveResize()
+        resetScrollSettings()
+        updateContentSizeIfNeeded()
     }
 
     // Loads text at the specified file URL. Ensures TextKit has some sample text to work with.
@@ -74,31 +102,101 @@ final class ExampleTextView: NSView {
     //
     // ❓ I'm hoping Apple Developer Technical Support can tell me how NSTextView
     // and TextEdit manages to scroll to the end of a document performantly.
+//    override func moveToEndOfDocument(_ sender: Any?) {
+//        // 👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇
+//        // If we do not call ensureLayout(for:) to layout the entire document, then we'll
+//        // get incorrect frames for the NSTextLayoutFragment and NSTextLineFragment.
+//        // However, ensureLayout(for:) is very expensive, so how does NSTextView manage to
+//        // jump to the end of a large document performantly?
+//        let measureStartDate = Date()
+//        textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
+//        print("⏰ ensureLayout(for:) took \(Date().timeIntervalSince(measureStartDate))s")
+//        // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+//
+//        let targetLocation = textLayoutManager.documentRange.endLocation
+//        let beforeTargetLocation = textLayoutManager.location(targetLocation, offsetBy: -1)!
+//        textLayoutManager.textViewportLayoutController.layoutViewport()
+//        guard let textLayoutFragment = textLayoutManager.textLayoutFragment(for: beforeTargetLocation) else {
+//            return
+//        }
+//        guard let textLineFragment = textLayoutFragment.textLineFragment(for: targetLocation, isUpstreamAffinity: true) else {
+//            return
+//        }
+//        let lineFrame = textLayoutFragment.layoutFragmentFrame
+//        let lineFragmentFrame = textLineFragment.typographicBounds.offsetBy(dx: 0, dy: lineFrame.minY)
+//        scrollToVisible(lineFragmentFrame)
+//        print("👉 RESULT: Last line fragment of the document is at \(lineFragmentFrame)")
+//    }
+    
     override func moveToEndOfDocument(_ sender: Any?) {
-        // 👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇
-        // If we do not call ensureLayout(for:) to layout the entire document, then we'll
-        // get incorrect frames for the NSTextLayoutFragment and NSTextLineFragment.
-        // However, ensureLayout(for:) is very expensive, so how does NSTextView manage to
-        // jump to the end of a large document performantly?
         let measureStartDate = Date()
-        textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
-        print("⏰ ensureLayout(for:) took \(Date().timeIntervalSince(measureStartDate))s")
-        // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
-
-        let targetLocation = textLayoutManager.documentRange.endLocation
-        let beforeTargetLocation = textLayoutManager.location(targetLocation, offsetBy: -1)!
-        textLayoutManager.textViewportLayoutController.layoutViewport()
-        guard let textLayoutFragment = textLayoutManager.textLayoutFragment(for: beforeTargetLocation) else {
-            return
-        }
-        guard let textLineFragment = textLayoutFragment.textLineFragment(for: targetLocation, isUpstreamAffinity: true) else {
-            return
-        }
-        let lineFrame = textLayoutFragment.layoutFragmentFrame
-        let lineFragmentFrame = textLineFragment.typographicBounds.offsetBy(dx: 0, dy: lineFrame.minY)
-        scrollToVisible(lineFragmentFrame)
-        print("👉 RESULT: Last line fragment of the document is at \(lineFragmentFrame)")
+        resetScrollSettings()
+        scrollposition = .end
+        scrollTextView()
+        print("⏰ scrolling took \(Date().timeIntervalSince(measureStartDate))s")
     }
+    
+    func moveToStartOfDocument(_ sender: Any?) {
+        let measureStartDate = Date()
+        resetScrollSettings()
+        scrollposition = .start
+        scrollTextView()
+        print("⏰ scrolling took \(Date().timeIntervalSince(measureStartDate))s")
+    }
+    
+    func resetScrollSettings(){
+        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(scrollTextView), object: nil)
+        maxBounds = 0
+        counter = 0
+        previousSelections = textLayoutManager.textSelections
+    }
+    
+    @objc func scrollTextView() {
+
+        if self.bounds.maxY == maxBounds && counter > 100 {
+            resetScrollSettings()
+            return
+        } else {
+            maxBounds = self.bounds.maxY
+            counter += 1
+        }
+        
+        self.scroll(NSPoint(x: self.visibleRect.origin.x, y: scrollposition == .start ? 0 : maxBounds))
+        
+        //
+        let point = NSPoint(x: 0, y: 0)
+        let nav = textLayoutManager.textSelectionNavigation
+        
+        textLayoutManager.textSelections = nav.textSelections(interactingAt: point,
+                                                               inContainerAt: textLayoutManager.documentRange.location,
+                                                               anchors: [],
+                                                              modifiers: [],
+                                                               selecting: true,
+                                                               bounds: .zero)
+   
+        layer?.setNeedsLayout()
+        //
+        perform(#selector(scrollTextView), with: nil, afterDelay: 0.01)
+
+    }
+
+    
+    
+    func updateContentSizeIfNeeded() {
+        let currentHeight = bounds.height
+        var height: CGFloat = 0
+        textLayoutManager.enumerateTextLayoutFragments(from: textLayoutManager.documentRange.endLocation,
+                                                        options: [.reverse, .ensuresLayout]) { layoutFragment in
+            height = layoutFragment.layoutFragmentFrame.maxY
+            return false // stop
+        }
+        height = max(height, enclosingScrollView?.contentSize.height ?? 0)
+        if abs(currentHeight - height) > 1e-10 {
+            let contentSize = NSSize(width: self.bounds.width, height: height)
+            setFrameSize(contentSize)
+        }
+    }
+
 }
 
 extension ExampleTextView: NSTextLayoutManagerDelegate {
@@ -109,6 +207,7 @@ extension ExampleTextView: NSTextLayoutManagerDelegate {
     ) -> NSTextLayoutFragment {
         NSTextLayoutFragment(textElement: textElement, range: textElement.elementRange)
     }
+    
 }
 
 extension ExampleTextView: NSTextViewportLayoutControllerDelegate {
@@ -126,6 +225,7 @@ extension ExampleTextView: NSTextViewportLayoutControllerDelegate {
     }
 
     func textViewportLayoutControllerDidLayout(_ textViewportLayoutController: NSTextViewportLayoutController) {
+        updateContentSizeIfNeeded()
         let size = textLayoutManager.usageBoundsForTextContainer.size
         setFrameSize(size)
     }
@@ -139,4 +239,5 @@ extension ExampleTextView: NSTextViewportLayoutControllerDelegate {
         layer?.addSublayer(textLayoutFragmentLayer)
         textLayoutFragmentLayer.displayIfNeeded()
     }
+
 }

@@ -8,4 +8,9 @@ final class WindowController: NSWindowController {
     @IBAction override func moveToEndOfDocument(_ sender: Any?) {
         textView.moveToEndOfDocument(sender)
     }
+    
+    @IBAction func moveToStartOfDocument(_ sender: Any) {
+        textView.moveToStartOfDocument(sender)
+    }
+   
 }

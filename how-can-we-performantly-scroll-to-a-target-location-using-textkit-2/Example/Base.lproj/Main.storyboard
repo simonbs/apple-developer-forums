@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="B8D-0N-5wS">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22690"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22689"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -687,7 +687,7 @@
                     <window key="window" title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="IQv-IB-iLA">
                         <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
                         <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-                        <rect key="contentRect" x="196" y="240" width="480" height="270"/>
+                        <rect key="contentRect" x="86" y="240" width="590" height="270"/>
                         <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
                         <toolbar key="toolbar" implicitIdentifier="FCB6AE0E-1137-4DFD-B339-33030B5B6759" autosavesConfiguration="NO" allowsUserCustomization="NO" showsBaselineSeparator="NO" displayMode="iconAndLabel" sizeMode="regular" id="2Nd-TD-rux">
                             <allowedToolbarItems>
@@ -698,9 +698,17 @@
                                         <action selector="moveToEndOfDocument:" target="B8D-0N-5wS" id="XC8-5u-63y"/>
                                     </connections>
                                 </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="68E7D7F8-7F26-4CC2-8A7F-50FD0D1BA7D7" label="Move to Start of Document" paletteLabel="Move to Start of Document" tag="-1" image="arrow.up.to.line.compact" catalog="system" bordered="YES" autovalidates="NO" id="aiX-rw-15i">
+                                    <size key="minSize" width="25" height="25"/>
+                                    <size key="maxSize" width="25" height="25"/>
+                                    <connections>
+                                        <action selector="moveToStartOfDocument:" target="B8D-0N-5wS" id="meG-8e-rjJ"/>
+                                    </connections>
+                                </toolbarItem>
                             </allowedToolbarItems>
                             <defaultToolbarItems>
                                 <toolbarItem reference="VhX-wq-4Aj"/>
+                                <toolbarItem reference="aiX-rw-15i"/>
                             </defaultToolbarItems>
                         </toolbar>
                         <connections>
@@ -713,7 +721,7 @@
                 </windowController>
                 <customObject id="Oky-zY-oP4" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="75" y="250"/>
+            <point key="canvasLocation" x="20" y="250"/>
         </scene>
         <!--View Controller-->
         <scene sceneID="hIz-AP-VOD">
@@ -731,5 +739,6 @@
     </scenes>
     <resources>
         <image name="arrow.down.to.line.compact" catalog="system" width="13" height="14"/>
+        <image name="arrow.up.to.line.compact" catalog="system" width="13" height="14"/>
     </resources>
 </document>
